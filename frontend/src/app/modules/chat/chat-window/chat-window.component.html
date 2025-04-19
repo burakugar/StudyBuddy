@@ -1,0 +1,62 @@
+<div class="chat-container">
+  <!-- Chat Header -->
+  <div class="chat-header p-3 border-bottom">
+    <div class="d-flex align-items-center">
+      <button class="btn btn-link text-decoration-none" routerLink="/chats">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <h5 class="mb-0 ms-2">Chat with {{ otherUserName }}</h5>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center flex-grow-1">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="alert alert-danger m-3" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Messages Container -->
+  <div #messageContainer class="messages-container p-3" [class.loading]="isLoading">
+    <div *ngFor="let message of messages" 
+         class="message mb-3"
+         [class.own-message]="isOwnMessage(message.senderId)"
+         [class.other-message]="!isOwnMessage(message.senderId)">
+      
+      <div class="message-content">
+        {{ message.content }}
+        <small class="message-time d-block text-muted">
+          {{ formatTimestamp(message.timestamp) }}
+        </small>
+      </div>
+    </div>
+
+    <div *ngIf="messages.length === 0 && !isLoading" class="text-center text-muted my-5">
+      <p>No messages yet. Start the conversation!</p>
+    </div>
+  </div>
+
+  <!-- Message Input -->
+  <div class="message-input-container p-3 border-top">
+    <form (ngSubmit)="sendMessage()" class="d-flex gap-2">
+      <input #messageInput
+             type="text"
+             class="form-control"
+             placeholder="Type your message..."
+             [(ngModel)]="newMessage"
+             name="newMessage"
+             [disabled]="isLoading"
+             (keyup.enter)="sendMessage()">
+      <button type="submit" 
+              class="btn btn-primary"
+              [disabled]="!newMessage.trim() || isLoading">
+        <i class="bi bi-send"></i>
+      </button>
+    </form>
+  </div>
+</div>

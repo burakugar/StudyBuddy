@@ -1,0 +1,59 @@
+<div class="container mt-4">
+  <h2 class="mb-3">Find Study Buddies</h2>
+
+  <div *ngIf="isLoading" class="d-flex justify-content-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && matchCards.length === 0 && !errorMessage" class="text-center text-muted my-5">
+    <p>No potential matches found right now. Check back later!</p>
+    <!-- Optional: Add a button to refresh or adjust criteria -->
+  </div>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" *ngIf="!isLoading && matchCards.length > 0">
+    <div class="col" *ngFor="let card of matchCards" [id]="'match-card-' + card.userId">
+      <div class="card h-100 shadow-sm match-card">
+        <div class="row g-0">
+          <div class="col-4 d-flex align-items-center justify-content-center p-3">
+            <img [src]="card.profilePictureUrl || 'https://placehold.co/100x100/e0e0e0/757575?text=??'" 
+                 class="img-fluid rounded-circle profile-pic" 
+                 alt="{{ card.fullName }}'s profile picture">
+          </div>
+          <div class="col-8">
+            <div class="card-body">
+              <h5 class="card-title">{{ card.fullName }}</h5>
+              <p class="card-text mb-1"><small class="text-muted">{{ card.academicYear || 'Year N/A' }} - {{ card.major || 'Major N/A' }}</small></p>
+              <p class="card-text mb-2 bio-text">{{ card.bio || 'No bio provided.' }}</p>
+              
+              <div class="mb-2">
+                <strong class="d-block small">Common Courses:</strong>
+                <span class="small text-muted">{{ formatList(card.commonCourses) }}</span>
+              </div>
+              <div>
+                <strong class="d-block small">Common Interests:</strong>
+                <span class="small text-muted">{{ formatList(card.commonInterests) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 d-flex justify-content-around p-2">
+          <button class="btn btn-danger btn-sm reject-btn" (click)="reject(card.userId)">
+            <i class="bi bi-x-lg"></i> Reject
+          </button>
+          <button class="btn btn-success btn-sm accept-btn" (click)="accept(card.userId)">
+            <i class="bi bi-check-lg"></i> Accept
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TODO: Add pagination controls if implementing pagination -->
+
+</div>

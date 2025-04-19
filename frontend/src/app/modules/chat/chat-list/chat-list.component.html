@@ -1,0 +1,36 @@
+<div class="container mt-4">
+  <h2 class="mb-3">Your Chats</h2>
+
+  <div *ngIf="isLoading" class="d-flex justify-content-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && chats.length === 0 && !errorMessage" class="text-center text-muted my-5">
+    <p>You have no active chats yet. Start matching to find study buddies!</p>
+  </div>
+
+  <div class="list-group chat-list" *ngIf="!isLoading && chats.length > 0">
+    <a *ngFor="let chat of chats" 
+       [routerLink]="['/chats', chat.chatId]" 
+       class="list-group-item list-group-item-action d-flex align-items-center chat-item">
+      
+      <img [src]="chat.otherUserAvatarUrl || 'https://placehold.co/50x50/e0e0e0/757575?text=??'" 
+           alt="{{ chat.otherUserName }}'s avatar" 
+           class="rounded-circle me-3 chat-avatar">
+      
+      <div class="flex-grow-1">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1 chat-user-name">{{ chat.otherUserName }}</h5>
+          <small class="text-muted chat-timestamp">{{ chat.lastMessageTimestamp | date:'shortTime' }}</small>
+        </div>
+        <p class="mb-1 chat-last-message">{{ truncateMessage(chat.lastMessageContent) }}</p>
+      </div>
+    </a>
+  </div>
+</div>

@@ -1,0 +1,34 @@
+.chat-list {
+  .chat-item {
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .chat-avatar {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+    }
+    
+    .chat-user-name {
+      color: #212529;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .chat-last-message {
+      color: #6c757d;
+      font-size: 0.875rem;
+      margin-bottom: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .chat-timestamp {
+      font-size: 0.75rem;
+    }
+  }
+}
