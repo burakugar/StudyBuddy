@@ -11,15 +11,11 @@ import java.util.Optional;
 
 @Repository
 public interface ChatRepository extends JpaRepository<Chat, Long> {
-    
-    /**
-     * Find a chat by the match user IDs
-     */
-    Optional<Chat> findByMatchUserOneIdAndMatchUserTwoId(Long userOneId, Long userTwoId);
-    
-    /**
-     * Find all chats for a specific user
-     */
+
+    @Query("SELECT c FROM Chat c WHERE (c.matchUserOneId = :userOneId AND c.matchUserTwoId = :userTwoId) OR (c.matchUserOneId = :userTwoId AND c.matchUserTwoId = :userOneId)")
+    Optional<Chat> findChatByParticipantIds(@Param("userOneId") Long userOneId, @Param("userTwoId") Long userTwoId);
+
+
     @Query("SELECT c FROM Chat c WHERE c.matchUserOneId = :userId OR c.matchUserTwoId = :userId")
     List<Chat> findChatsByUserId(@Param("userId") Long userId);
 }

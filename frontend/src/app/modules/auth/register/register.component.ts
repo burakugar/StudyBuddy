@@ -4,7 +4,6 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 
-// Define an interface that matches what we're sending to the server
 interface SignupRequest {
   email: string;
   password: string;
@@ -17,7 +16,7 @@ interface SignupRequest {
   preferredEnvironment?: string;
   courseCodes?: string[];
   interestNames?: string[];
-  profilePictureUrl?: string; // Added this field to match what we're sending
+  profilePictureUrl?: string;
 }
 
 @Component({
@@ -34,15 +33,12 @@ interface SignupRequest {
             </div>
             <div class="card-body">
               <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-                <!-- Alert for errors -->
                 <div *ngIf="error" class="alert alert-danger">
                   {{ error }}
                 </div>
 
-                <!-- Required fields section -->
                 <h5 class="mb-3">Account Information</h5>
 
-                <!-- Email field -->
                 <div class="mb-3">
                   <label for="email" class="form-label">Email *</label>
                   <input
@@ -58,7 +54,6 @@ interface SignupRequest {
                   </div>
                 </div>
 
-                <!-- Password field -->
                 <div class="mb-3">
                   <label for="password" class="form-label">Password *</label>
                   <input
@@ -74,7 +69,6 @@ interface SignupRequest {
                   </div>
                 </div>
 
-                <!-- Full Name field -->
                 <div class="mb-3">
                   <label for="fullName" class="form-label">Full Name *</label>
                   <input
@@ -91,7 +85,6 @@ interface SignupRequest {
 
                 <hr class="my-4">
 
-                <!-- Academic Information -->
                 <h5 class="mb-3">Academic Information</h5>
 
                 <div class="row">
@@ -149,7 +142,6 @@ interface SignupRequest {
 
                 <hr class="my-4">
 
-                <!-- Study Preferences -->
                 <h5 class="mb-3">Study Preferences</h5>
 
                 <div class="row">
@@ -200,7 +192,6 @@ interface SignupRequest {
                   <div class="form-text">Enter URL to your profile picture (optional)</div>
                 </div>
 
-                <!-- Submit button -->
                 <div class="d-grid gap-2 mt-4">
                   <button [disabled]="loading" type="submit" class="btn btn-primary">
                     <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
@@ -209,7 +200,6 @@ interface SignupRequest {
                 </div>
               </form>
 
-              <!-- Login link -->
               <div class="mt-3 text-center">
                 <p>Already have an account? <a routerLink="/auth/login">Login</a></p>
               </div>
@@ -232,14 +222,12 @@ export class RegisterComponent implements OnInit {
     private router: Router,
     private authService: AuthService
   ) {
-    // Redirect if already logged in
     if (this.authService.getCurrentUser()) {
       this.router.navigate(['/']);
     }
   }
 
   ngOnInit(): void {
-    // Initialize form
     this.registerForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -247,8 +235,8 @@ export class RegisterComponent implements OnInit {
       academicYear: [''],
       major: [''],
       university: [''],
-      courses: [''], // Will be parsed into string array
-      interests: [''], // Will be parsed into string array
+      courses: [''],
+      interests: [''],
       studyStyle: [''],
       preferredEnvironment: [''],
       bio: [''],
@@ -256,13 +244,11 @@ export class RegisterComponent implements OnInit {
     });
   }
 
-  // Getter for easy access to form fields
   get f() { return this.registerForm.controls; }
 
   onSubmit(): void {
     this.submitted = true;
 
-    // Stop here if form is invalid
     if (this.registerForm.invalid) {
       return;
     }
@@ -270,7 +256,6 @@ export class RegisterComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    // Parse comma-separated values into arrays
     const courseCodes = this.f['courses'].value
       ? this.f['courses'].value.split(',').map((code: string) => code.trim()).filter((code: string) => code)
       : [];
@@ -279,7 +264,6 @@ export class RegisterComponent implements OnInit {
       ? this.f['interests'].value.split(',').map((interest: string) => interest.trim()).filter((interest: string) => interest)
       : [];
 
-    // Create the request object
     const signupRequest: SignupRequest = {
       email: this.f['email'].value,
       password: this.f['password'].value,

@@ -1,0 +1,80 @@
+<div class="container mt-4 mb-5">
+  <button class="btn btn-sm btn-outline-secondary mb-3" (click)="goBack()">
+    <i class="bi bi-arrow-left me-1"></i> Back to Sessions
+  </button>
+
+  <div *ngIf="isLoading" class="text-center my-5 py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading session details...</span>
+    </div>
+    <p class="text-muted mt-2">Loading session details...</p>
+  </div>
+
+  <div *ngIf="error && !isLoading" class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+  </div>
+
+  <div *ngIf="session && !isLoading && !error" class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <h2 class="mb-0 h4 text-primary">{{ session.title }}</h2>
+      <div class="d-flex gap-2">
+        <button *ngIf="isCreator" class="btn btn-sm btn-outline-primary" (click)="editSession()">
+          <i class="bi bi-pencil-square me-1"></i> Edit
+        </button>
+        <button *ngIf="!isParticipant && !isCreator" class="btn btn-sm btn-success" (click)="joinSession()" [disabled]="isProcessingAction">
+          <span *ngIf="isProcessingAction" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          <i *ngIf="!isProcessingAction" class="bi bi-person-plus-fill me-1"></i> Join Session
+        </button>
+        <button *ngIf="isParticipant && !isCreator" class="btn btn-sm btn-warning" (click)="leaveSession()" [disabled]="isProcessingAction">
+          <span *ngIf="isProcessingAction" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          <i *ngIf="!isProcessingAction" class="bi bi-person-dash-fill me-1"></i> Leave Session
+        </button>
+        <button *ngIf="isCreator" class="btn btn-sm btn-outline-danger" (click)="deleteSession()" [disabled]="isProcessingAction">
+          <span *ngIf="isProcessingAction" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          <i *ngIf="!isProcessingAction" class="bi bi-trash me-1"></i> Delete
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-4">
+      <div *ngIf="session.description" class="mb-4">
+        <h5 class="text-secondary">Description</h5>
+        <p class="bg-light p-3 rounded">{{ session.description }}</p>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <h6 class="text-secondary mb-1"><i class="bi bi-calendar-event me-2"></i>Start Time</h6>
+          <p>{{ session.startTime | date:'fullDate' }} at {{ session.startTime | date:'shortTime' }}</p>
+        </div>
+        <div class="col-md-6" *ngIf="session.endTime">
+          <h6 class="text-secondary mb-1"><i class="bi bi-calendar-event-fill me-2"></i>End Time</h6>
+          <p>{{ session.endTime | date:'fullDate' }} at {{ session.endTime | date:'shortTime' }}</p>
+        </div>
+        <div class="col-md-6">
+          <h6 class="text-secondary mb-1"><i class="bi bi-geo-alt-fill me-2"></i>Location</h6>
+          <p>{{ session.location }}</p>
+        </div>
+        <div class="col-md-6" *ngIf="session.courseCode">
+          <h6 class="text-secondary mb-1"><i class="bi bi-book-fill me-2"></i>Related Course</h6>
+          <p>{{ session.courseCode }}</p>
+        </div>
+        <div class="col-md-6">
+          <h6 class="text-secondary mb-1"><i class="bi bi-person-fill me-2"></i>Creator</h6>
+          <p>{{ session.creatorName }}</p>
+        </div>
+        <div class="col-md-6">
+          <h6 class="text-secondary mb-1"><i class="bi bi-people-fill me-2"></i>Participants</h6>
+          <p>{{ session.participantCount }} Participant{{ session.participantCount !== 1 ? 's' : '' }}</p>
+        </div>
+      </div>
+
+      <div class="alert alert-info small" *ngIf="isParticipant && !isCreator">
+        <i class="bi bi-info-circle-fill me-1"></i> You are participating in this session.
+      </div>
+      <div class="alert alert-secondary small" *ngIf="isCreator">
+        <i class="bi bi-star-fill me-1"></i> You are the creator of this session.
+      </div>
+
+    </div>
+  </div>
+</div>

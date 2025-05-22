@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileDto {
-    
+
     private Long id;
     private String email;
     private String fullName;
@@ -24,6 +24,9 @@ public class UserProfileDto {
     private String bio;
     private String studyStyle;
     private String preferredEnvironment;
+    private Double latitude;
+    private Double longitude;
     private List<CourseDto> courses = new ArrayList<>();
     private List<InterestDto> interests = new ArrayList<>();
+    private List<AvailabilitySlotDto> availabilitySlots = new ArrayList<>();
 }

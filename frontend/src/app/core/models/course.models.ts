@@ -10,5 +10,4 @@ export interface CourseDto {
   department?: string;
 }
 
-// Empty export to ensure file is recognized as a module
 export {};

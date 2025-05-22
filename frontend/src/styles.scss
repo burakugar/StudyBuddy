@@ -1,48 +1,104 @@
-/* You can add global styles to this file, and also import other style files */
-@import 'bootstrap/dist/css/bootstrap.min.css';
-@import 'bootstrap-icons/font/bootstrap-icons.css';
-
 :root {
-  --header-height: 56px;
+  --app-bg-light: #f8f9fa;
+  --app-base-font-size: 0.95rem;
+  --app-mobile-nav-height: 260px;
 }
 
-/* Global styles */
+@import 'leaflet/dist/leaflet.css';
+
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  background-color: var(--app-bg-light);
+  font-size: var(--app-base-font-size);
+  line-height: 1.5;
+  color: #212529;
 }
 
-/* Utility classes */
+.main-container {
+  padding-top: 60px;
+  padding-bottom: 2rem;
+  transition: padding-top 0.35s ease;
+}
+
+body.mobile-nav-open .main-container {
+  padding-top: calc(60px + var(--app-mobile-nav-height));
+}
+
+
+.card {
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 500;
+}
+
+.btn {
+}
+
+.btn-primary {
+}
+
+.form-control,
+.form-select {
+  font-size: 0.9rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+  border-color: #86b7fe;
+}
+
+a {
+  text-decoration: none;
+  transition: color 0.15s ease-in-out;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .cursor-pointer {
   cursor: pointer;
 }
 
-/* Chat-specific global styles */
-.message-bubble {
-  max-width: 70%;
-  word-wrap: break-word;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-/* Form styles */
-.form-control:focus {
-  box-shadow: none;
-  border-color: #007bff;
-}
-
-/* Custom scrollbar for chat windows */
-.messages-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.messages-container::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #f1f1f1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
-.messages-container::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
+@media (max-width: 991.98px) {
 
-.messages-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  .navbar .navbar-collapse {
+    background-color: white;
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1029;
+  }
 }

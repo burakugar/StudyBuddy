@@ -4,184 +4,269 @@ import com.studybuddy.chat.ChatRepository;
 import com.studybuddy.course.dto.CourseDto;
 import com.studybuddy.exception.ResourceNotFoundException;
 import com.studybuddy.interest.dto.InterestDto;
-import com.studybuddy.matching.dto.MatchActionRequest;
 import com.studybuddy.matching.dto.MatchCardDto;
 import com.studybuddy.model.*;
 import com.studybuddy.user.UserRepository;
+import com.studybuddy.user.dto.AvailabilitySlotDto; // Import needed DTO
+import com.studybuddy.user.UserService; // Import UserService for mapping
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MatchingService {
 
     private final UserRepository userRepository;
     private final MatchRepository matchRepository;
     private final ChatRepository chatRepository;
+    // No need for UserService directly if we fetch users with collections
 
-    /**
-     * Get potential study buddy matches for a user
-     */
+    @Transactional(readOnly = true)
     public List<MatchCardDto> getPotentialMatches(Long currentUserId, Pageable pageable) {
-        // Get the current user with their courses and interests
         User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
-        
-        // Extract current user's courses and interests for comparison
-        Map<String, String> currentUserCourses = extractUserCourses(currentUser);
-        Set<String> currentUserInterests = extractUserInterests(currentUser);
-        
-        // Find potential matches (users not already rejected or matched)
-        Page<User> potentialUsers = matchRepository.findPotentialMatches(currentUserId, pageable);
-        
-        // Transform to DTOs with common courses and interests
+            .map(user -> { // Eagerly fetch needed collections
+                user.getCourses().size();
+                user.getInterests().size();
+                user.getAvailabilitySlots().size();
+                return user;
+            })
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
+
+        Set<String> currentUserCourses = extractUserCourseCodes(currentUser);
+        Set<String> currentUserInterests = extractUserInterestNames(currentUser);
+        Set<AvailabilitySlot> currentUserSlots = currentUser.getAvailabilitySlots();
+
+        Page<User> potentialUsersPage = matchRepository.findPotentialMatches(currentUserId, pageable);
+        log.debug("Found {} potential raw matches for user {} (Page {} of size {})",
+            potentialUsersPage.getTotalElements(), currentUserId, pageable.getPageNumber(), pageable.getPageSize());
+
         List<MatchCardDto> matchCards = new ArrayList<>();
-        for (User potentialMatch : potentialUsers) {
-            Map<String, String> potentialMatchCourses = extractUserCourses(potentialMatch);
-            Set<String> potentialMatchInterests = extractUserInterests(potentialMatch);
-            
-            // Find common courses
-            List<CourseDto> commonCourses = new ArrayList<>();
-            for (Map.Entry<String, String> entry : currentUserCourses.entrySet()) {
-                if (potentialMatchCourses.containsKey(entry.getKey())) {
-                    commonCourses.add(new CourseDto(entry.getKey(), entry.getValue()));
-                }
+        for (User potentialMatch : potentialUsersPage.getContent()) {
+            // Eager fetch collections for the potential match
+            User potentialMatchFull = userRepository.findById(potentialMatch.getId())
+                .map(user -> {
+                    user.getCourses().size();
+                    user.getInterests().size();
+                    user.getAvailabilitySlots().size();
+                    return user;
+                })
+                .orElse(null); // Or handle error
+
+            if (potentialMatchFull == null) {
+                log.warn("Could not fully load potential match user {}", potentialMatch.getId());
+                continue;
             }
-            
-            // Find common interests
-            List<InterestDto> commonInterests = new ArrayList<>();
-            for (String interest : currentUserInterests) {
-                if (potentialMatchInterests.contains(interest)) {
-                    commonInterests.add(new InterestDto(interest));
-                }
-            }
-            
-            // Create match card with common elements
+
+            Set<String> potentialMatchCourses = extractUserCourseCodes(potentialMatchFull);
+            Set<String> potentialMatchInterests = extractUserInterestNames(potentialMatchFull);
+            Set<AvailabilitySlot> potentialMatchSlots = potentialMatchFull.getAvailabilitySlots();
+
+            // Calculate Common Courses & Interests
+            List<CourseDto> commonCourses = currentUser.getCourses().stream()
+                .map(UserCourse::getCourse)
+                .filter(Objects::nonNull)
+                .filter(course -> potentialMatchCourses.contains(course.getCourseCode()))
+                .map(course -> new CourseDto(course.getCourseCode(), course.getName()))
+                .sorted(Comparator.comparing(CourseDto::getCourseCode))
+                .collect(Collectors.toList());
+
+            List<InterestDto> commonInterests = currentUser.getInterests().stream()
+                .map(UserInterest::getInterest)
+                .filter(Objects::nonNull)
+                .filter(interest -> potentialMatchInterests.contains(interest.getName()))
+                .map(interest -> new InterestDto(interest.getName()))
+                .sorted(Comparator.comparing(InterestDto::getName))
+                .collect(Collectors.toList());
+
+            // Calculate Availability Overlap Score (Simple Example)
+            double availabilityScore = calculateAvailabilityOverlapScore(currentUserSlots, potentialMatchSlots);
+
+            // Create DTO
             MatchCardDto matchCard = new MatchCardDto(
-                    potentialMatch.getId(),
-                    potentialMatch.getFullName(),
-                    potentialMatch.getAcademicYear(),
-                    potentialMatch.getMajor(),
-                    potentialMatch.getProfilePictureUrl(),
-                    commonCourses,
-                    commonInterests,
-                    potentialMatch.getBio()
+                potentialMatchFull.getId(),
+                potentialMatchFull.getFullName(),
+                potentialMatchFull.getAcademicYear(),
+                potentialMatchFull.getMajor(),
+                potentialMatchFull.getProfilePictureUrl(),
+                commonCourses,
+                commonInterests,
+                potentialMatchFull.getBio(),
+                availabilityScore // Add score to DTO
             );
-            
+
             matchCards.add(matchCard);
         }
-        
-        // Sort by commonality (most common courses, then most common interests)
+
+        // Sort based on a combined score (example: more weight to courses, then interests, then availability)
         matchCards.sort((a, b) -> {
-            int courseComparison = Integer.compare(b.getCommonCourses().size(), a.getCommonCourses().size());
-            if (courseComparison != 0) {
-                return courseComparison;
-            }
-            return Integer.compare(b.getCommonInterests().size(), a.getCommonInterests().size());
+            double scoreA = (a.getCommonCourses().size() * 3.0) + (a.getCommonInterests().size() * 1.5) + a.getAvailabilityScore();
+            double scoreB = (b.getCommonCourses().size() * 3.0) + (b.getCommonInterests().size() * 1.5) + b.getAvailabilityScore();
+            return Double.compare(scoreB, scoreA); // Higher score first
         });
-        
+
+        log.info("Returning {} sorted potential match cards for user {}", matchCards.size(), currentUserId);
         return matchCards;
     }
 
-    /**
-     * Process a match action (accept or reject)
-     */
     @Transactional
     public void processMatchAction(Long currentUserId, Long targetUserId, String action) {
-        // Ensure users exist
-        userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
-        userRepository.findById(targetUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", targetUserId));
-        
-        // Ensure we're not matching with ourselves
+        log.info("Processing match action: User {} -> User {}, Action: {}", currentUserId, targetUserId, action);
+        // Fetch users (consider if full entity is needed or just reference)
+        User currentUser = userRepository.findById(currentUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
+        User targetUser = userRepository.findById(targetUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", targetUserId));
+
         if (currentUserId.equals(targetUserId)) {
+            log.warn("User {} attempted to match with themselves.", currentUserId);
             throw new IllegalArgumentException("Cannot match with yourself");
         }
-        
-        // Sort user IDs to maintain consistent ordering in the database
-        Long userOneId = Math.min(currentUserId, targetUserId);
-        Long userTwoId = Math.max(currentUserId, targetUserId);
-        
-        // Find existing match or create new one
-        Match match = matchRepository.findMatchByUserIds(userOneId, userTwoId)
-                .orElseGet(() -> {
-                    User userOne = new User();
-                    userOne.setId(userOneId);
-                    
-                    User userTwo = new User();
-                    userTwo.setId(userTwoId);
-                    
-                    Match newMatch = new Match();
-                    newMatch.setId(MatchId.create(userOneId, userTwoId));
-                    newMatch.setUserOne(userOne);
-                    newMatch.setUserTwo(userTwo);
-                    
-                    return newMatch;
-                });
-        
-        // Convert action string to enum
+
+        MatchId matchId = MatchId.create(currentUserId, targetUserId);
+
+        Match match = matchRepository.findById(matchId)
+            .orElseGet(() -> {
+                log.debug("Creating new match entry for users {} and {}", matchId.getUserOneId(), matchId.getUserTwoId());
+                Match newMatch = new Match();
+                newMatch.setId(matchId);
+                // Use fetched entities or references
+                newMatch.setUserOne(userRepository.getReferenceById(matchId.getUserOneId()));
+                newMatch.setUserTwo(userRepository.getReferenceById(matchId.getUserTwoId()));
+                return newMatch;
+            });
+
         MatchStatus matchStatus = MatchStatus.valueOf(action);
-        
-        // Set the appropriate user's status
-        if (currentUserId.equals(userOneId)) {
+
+        // Set status based on which user ID is performing the action
+        if (currentUserId.equals(matchId.getUserOneId())) {
+            log.debug("Setting User One ({}) status to {}", currentUserId, matchStatus);
             match.setUserOneStatus(matchStatus);
-        } else {
+        } else { // currentUserId must be userTwoId
+            log.debug("Setting User Two ({}) status to {}", currentUserId, matchStatus);
             match.setUserTwoStatus(matchStatus);
         }
-        
-        // Save the match
+
+        // Explicitly calculate and set the overall status string before saving
+        String calculatedStatus = match.calculateStatus();
+        match.setStatus(calculatedStatus);
+        log.debug("Calculated overall match status: {}", calculatedStatus);
+
         Match savedMatch = matchRepository.save(match);
-        
-        // If both users have ACCEPTED, create a chat
-        if (savedMatch.getUserOneStatus() == MatchStatus.ACCEPTED && 
-            savedMatch.getUserTwoStatus() == MatchStatus.ACCEPTED) {
+        log.info("Saved match entry with ID {} and Status {}", savedMatch.getId(), savedMatch.getStatus());
+
+
+        // Create chat only if the status becomes MATCHED
+        if (savedMatch.getStatus().equals("MATCHED")) {
+            log.info("Match confirmed between User {} and User {}. Attempting to create chat.", matchId.getUserOneId(), matchId.getUserTwoId());
             createChatForMatch(savedMatch);
+        } else {
+            log.debug("Match status is not MATCHED ({}), not creating chat.", savedMatch.getStatus());
         }
     }
 
-    /**
-     * Create a chat for a matched pair
-     */
-    @Transactional
+
+    @Transactional // Keep transactional for chat creation
     public Chat createChatForMatch(Match match) {
-        // Check if a chat already exists
-        if (chatRepository.findByMatchUserOneIdAndMatchUserTwoId(match.getId().getUserOneId(), match.getId().getUserTwoId()).isPresent()) {
-            return null; // Chat already exists
+        MatchId matchId = match.getId();
+        Optional<Chat> existingChat = chatRepository.findChatByParticipantIds(matchId.getUserOneId(), matchId.getUserTwoId());
+
+        if (existingChat.isPresent()) {
+            log.warn("Chat already exists for match between users {} and {}. Skipping creation.", matchId.getUserOneId(), matchId.getUserTwoId());
+            return existingChat.get();
         }
-        
-        // Create new chat
+
+        log.info("Creating new chat for matched users {} and {}", matchId.getUserOneId(), matchId.getUserTwoId());
         Chat chat = new Chat();
-        chat.setMatchUserOneId(match.getId().getUserOneId());
-        chat.setMatchUserTwoId(match.getId().getUserTwoId());
-        
-        return chatRepository.save(chat);
+        chat.setMatchUserOneId(matchId.getUserOneId());
+        chat.setMatchUserTwoId(matchId.getUserTwoId());
+        // createdAt is set by @PrePersist
+
+        Chat savedChat = chatRepository.save(chat);
+        log.info("Chat created successfully with ID: {}", savedChat.getId());
+        return savedChat;
     }
 
-    /**
-     * Extract a map of course codes to names from a user
-     */
-    private Map<String, String> extractUserCourses(User user) {
-        Map<String, String> courses = new HashMap<>();
-        for (UserCourse userCourse : user.getCourses()) {
-            Course course = userCourse.getCourse();
-            courses.put(course.getCourseCode(), course.getName());
+
+    // --- Helper Methods ---
+
+    private Set<String> extractUserCourseCodes(User user) {
+        if (user.getCourses() == null) {
+            return Collections.emptySet();
         }
-        return courses;
+        return user.getCourses().stream()
+            .map(UserCourse::getCourse)
+            .filter(Objects::nonNull)
+            .map(Course::getCourseCode)
+            .collect(Collectors.toSet());
     }
 
-    /**
-     * Extract a set of interest names from a user
-     */
-    private Set<String> extractUserInterests(User user) {
+    private Set<String> extractUserInterestNames(User user) {
+        if (user.getInterests() == null) {
+            return Collections.emptySet();
+        }
         return user.getInterests().stream()
-                .map(userInterest -> userInterest.getInterest().getName())
-                .collect(Collectors.toSet());
+            .map(UserInterest::getInterest)
+            .filter(Objects::nonNull)
+            .map(Interest::getName)
+            .collect(Collectors.toSet());
+    }
+
+    private double calculateAvailabilityOverlapScore(Set<AvailabilitySlot> slots1, Set<AvailabilitySlot> slots2) {
+        if (slots1 == null || slots2 == null || slots1.isEmpty() || slots2.isEmpty()) {
+            return 0.0;
+        }
+
+        double totalOverlapHours = 0;
+
+        Map<DayOfWeek, List<AvailabilitySlot>> slots1ByDay = slots1.stream()
+            .collect(Collectors.groupingBy(AvailabilitySlot::getDayOfWeek));
+        Map<DayOfWeek, List<AvailabilitySlot>> slots2ByDay = slots2.stream()
+            .collect(Collectors.groupingBy(AvailabilitySlot::getDayOfWeek));
+
+        for (DayOfWeek day : slots1ByDay.keySet()) {
+            if (slots2ByDay.containsKey(day)) {
+                List<AvailabilitySlot> daySlots1 = slots1ByDay.get(day);
+                List<AvailabilitySlot> daySlots2 = slots2ByDay.get(day);
+
+                for (AvailabilitySlot s1 : daySlots1) {
+                    for (AvailabilitySlot s2 : daySlots2) {
+                        totalOverlapHours += calculateTimeOverlapHours(s1.getStartTime(), s1.getEndTime(), s2.getStartTime(), s2.getEndTime());
+                    }
+                }
+            }
+        }
+
+        // Normalize score (e.g., based on total possible hours or just return raw hours)
+        // Simple approach: return total overlap hours (higher is better)
+        // More complex: Divide by total available hours for one user, etc.
+        log.trace("Calculated availability overlap: {} hours", totalOverlapHours);
+        return totalOverlapHours; // Return raw hours for now
+    }
+
+    private double calculateTimeOverlapHours(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
+        // Find the overlapping interval
+        LocalTime overlapStart = start1.isAfter(start2) ? start1 : start2;
+        LocalTime overlapEnd = end1.isBefore(end2) ? end1 : end2;
+
+        // Check if there is an overlap
+        if (overlapStart.isBefore(overlapEnd)) {
+            // Calculate duration in minutes and convert to hours
+            long overlapMinutes = java.time.Duration.between(overlapStart, overlapEnd).toMinutes();
+            return overlapMinutes / 60.0;
+        } else {
+            // No overlap
+            return 0.0;
+        }
     }
 }

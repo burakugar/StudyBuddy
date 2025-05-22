@@ -1,0 +1,29 @@
+.session-item {
+  transition: background-color 0.15s ease-in-out;
+  border-left: 4px solid transparent;
+
+  &:hover {
+    background-color: #f8f9fa; 
+    border-left-color: var(--bs-secondary);
+  }
+
+  &.active { 
+    background-color: var(--bs-primary-bg-subtle);
+    border-left-color: var(--bs-primary);
+    .session-title {
+      color: var(--bs-primary);
+    }
+  }
+}
+
+.session-title {
+  font-weight: 500;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}

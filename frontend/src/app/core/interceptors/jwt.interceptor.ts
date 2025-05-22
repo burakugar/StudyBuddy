@@ -13,20 +13,15 @@ export const jwtInterceptor: HttpInterceptorFn = (
 ) => {
   const authService = inject(AuthService);
 
-  // Get the auth token from the service
   const token = authService.getToken();
   const isApiUrl = request.url.startsWith(environment.apiUrl);
 
-  // Only add token to API requests and if user is logged in
   if (token && isApiUrl) {
-    // Clone the request and add the authorization header
     request = request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
   }
-
-  // Pass the modified request to the next handler
   return next(request);
 };

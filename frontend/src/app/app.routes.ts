@@ -1,11 +1,10 @@
-// frontend/src/app/app.routes.ts (Ensure Guard is Active)
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'matching', // Or wherever your default logged-in page is
+    redirectTo: 'dashboard',
     pathMatch: 'full'
   },
   {
@@ -13,9 +12,14 @@ export const routes: Routes = [
     loadChildren: () => import('./modules/auth/auth.routes').then(m => m.AUTH_ROUTES)
   },
   {
-    path: 'chat', // Singular path
+    path: 'dashboard',
+    loadChildren: () => import('./modules/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'chats',
     loadChildren: () => import('./modules/chat/chat.routes').then(m => m.CHAT_ROUTES),
-    canActivate: [AuthGuard] // <<< MAKE SURE THIS IS PRESENT AND NOT COMMENTED OUT
+    canActivate: [AuthGuard]
   },
   {
     path: 'matching',
@@ -28,8 +32,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
-    // Wildcard route - redirect unknown paths
+    path: 'sessions',
+    loadChildren: () => import('./modules/sessions/sessions.routes').then(m => m.SESSIONS_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
     path: '**',
-    redirectTo: 'matching' // Or your preferred fallback route
+    redirectTo: 'dashboard'
   }
 ];

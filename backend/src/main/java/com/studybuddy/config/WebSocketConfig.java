@@ -1,6 +1,9 @@
 package com.studybuddy.config;
 
+import com.studybuddy.security.WebSocketAuthenticationInterceptor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -8,22 +11,28 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final WebSocketAuthenticationInterceptor webSocketAuthInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // Set prefix for endpoints the client will subscribe to
-        registry.enableSimpleBroker("/topic");
-        
-        // Set prefix for endpoints the client will send messages to
+        // Add "/queue" for user-specific destinations
+        registry.enableSimpleBroker("/topic", "/queue");
         registry.setApplicationDestinationPrefixes("/app");
+        registry.setUserDestinationPrefix("/user"); // Enable user destinations
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // The endpoint clients will use to connect to the WebSocket server
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:4200") // Angular frontend
-                .withSockJS(); // Fallback options for browsers that don't support WebSocket
+            .setAllowedOrigins("http://localhost:4200")
+            .withSockJS();
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(webSocketAuthInterceptor);
     }
 }

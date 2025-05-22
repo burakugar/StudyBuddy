@@ -14,4 +14,11 @@ export interface ChatMessageDto {
   senderName?: string;
   content: string;
   timestamp: Date;
+  readTimestamp?: Date | null; 
+}
+
+export interface ReadReceipt {
+  messageId: number;
+  chatId: number;
+  readTimestamp: Date;
 }

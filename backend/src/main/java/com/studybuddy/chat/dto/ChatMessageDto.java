@@ -12,18 +12,20 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
-    
-    private Long messageId; // Optional, can be null for new messages
-    
+
+    private Long messageId;
+
     @NotNull(message = "Chat ID is required")
     private Long chatId;
-    
-    private Long senderId; // Set by the server
-    
-    private String senderName; // Optional, can be added by the backend
-    
+
+    private Long senderId;
+
+    private String senderName;
+
     @NotBlank(message = "Message content cannot be empty")
     private String content;
-    
-    private ZonedDateTime timestamp; // Set by server
+
+    private ZonedDateTime timestamp;
+
+    private ZonedDateTime readTimestamp;
 }

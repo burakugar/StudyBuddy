@@ -1,59 +1,76 @@
 <div class="container mt-4">
-  <h2 class="mb-3">Find Study Buddies</h2>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Find Study Buddies</h2>
+    <button class="btn btn-sm btn-outline-secondary" (click)="loadPotentialMatches()" [disabled]="isLoading" title="Refresh Matches">
+      <i class="bi bi-arrow-clockwise" [class.spin]="isLoading"></i>
+    </button>
+  </div>
 
-  <div *ngIf="isLoading" class="d-flex justify-content-center my-5">
+  <div *ngIf="isLoading && matchCards.length === 0" class="d-flex justify-content-center align-items-center py-5">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
   </div>
 
-  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger" role="alert">
-    {{ errorMessage }}
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-warning d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <div>{{ errorMessage }}</div>
+    <button type="button" class="btn-close ms-auto" (click)="errorMessage = null" aria-label="Close"></button>
   </div>
 
-  <div *ngIf="!isLoading && matchCards.length === 0 && !errorMessage" class="text-center text-muted my-5">
-    <p>No potential matches found right now. Check back later!</p>
-    <!-- Optional: Add a button to refresh or adjust criteria -->
+
+  <div *ngIf="!isLoading && matchCards.length === 0 && !errorMessage" class="text-center text-muted bg-light p-5 rounded">
+    <i class="bi bi-person-x fs-1 mb-3"></i>
+    <h4>No More Matches</h4>
+    <p>You've seen all potential matches for now. Check back later!</p>
   </div>
 
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" *ngIf="!isLoading && matchCards.length > 0">
-    <div class="col" *ngFor="let card of matchCards" [id]="'match-card-' + card.userId">
-      <div class="card h-100 shadow-sm match-card">
-        <div class="row g-0">
-          <div class="col-4 d-flex align-items-center justify-content-center p-3">
-            <img [src]="card.profilePictureUrl || 'https://placehold.co/100x100/e0e0e0/757575?text=??'" 
-                 class="img-fluid rounded-circle profile-pic" 
-                 alt="{{ card.fullName }}'s profile picture">
-          </div>
-          <div class="col-8">
-            <div class="card-body">
-              <h5 class="card-title">{{ card.fullName }}</h5>
-              <p class="card-text mb-1"><small class="text-muted">{{ card.academicYear || 'Year N/A' }} - {{ card.major || 'Major N/A' }}</small></p>
-              <p class="card-text mb-2 bio-text">{{ card.bio || 'No bio provided.' }}</p>
-              
-              <div class="mb-2">
-                <strong class="d-block small">Common Courses:</strong>
-                <span class="small text-muted">{{ formatList(card.commonCourses) }}</span>
-              </div>
-              <div>
-                <strong class="d-block small">Common Interests:</strong>
-                <span class="small text-muted">{{ formatList(card.commonInterests) }}</span>
-              </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" *ngIf="matchCards.length > 0">
+    <div class="col d-flex" *ngFor="let card of matchCards; trackBy: trackByUserId" [id]="'match-card-' + card.userId">
+      <div class="card h-100 shadow-sm match-card flex-fill" [class.processing]="processingIds.has(card.userId)">
+        <div class="text-center pt-3">
+          <img [src]="card.profilePictureUrl || defaultAvatar"
+               class="rounded-circle profile-pic border border-2"
+               alt="{{ card.fullName }}'s profile picture">
+        </div>
+
+        <div class="card-body d-flex flex-column text-center">
+          <h5 class="card-title mt-2 mb-1">{{ card.fullName }}</h5>
+          <p class="card-text mb-1">
+            <small class="text-muted">
+              {{ card.academicYear || 'Year N/A' }}
+              <span *ngIf="card.major"> - {{ card.major }}</span>
+            </small>
+          </p>
+          <p class="card-text mb-2 bio-text small flex-grow-1">{{ card.bio || 'No bio provided.' }}</p>
+
+          <div class="mt-auto pt-2 border-top">
+            <div class="mb-2" *ngIf="card.commonCourses && card.commonCourses.length > 0">
+              <strong class="d-block small text-success">Common Courses:</strong>
+              <span *ngFor="let course of card.commonCourses" class="badge bg-primary-subtle text-primary-emphasis rounded-pill me-1 mb-1">{{ course.courseCode }}</span>
+            </div>
+            <div *ngIf="card.commonInterests && card.commonInterests.length > 0">
+              <strong class="d-block small text-info">Common Interests:</strong>
+              <span *ngFor="let interest of card.commonInterests" class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill me-1 mb-1">{{ interest.name }}</span>
             </div>
           </div>
         </div>
-        <div class="card-footer bg-transparent border-top-0 d-flex justify-content-around p-2">
-          <button class="btn btn-danger btn-sm reject-btn" (click)="reject(card.userId)">
-            <i class="bi bi-x-lg"></i> Reject
+
+        <div class="card-footer bg-transparent border-top-0 d-flex justify-content-around p-2 pb-3">
+          <button class="btn btn-outline-danger rounded-circle p-0 reject-btn" (click)="reject(card.userId)" [disabled]="processingIds.has(card.userId)" title="Skip">
+            <i class="bi bi-x-lg"></i>
           </button>
-          <button class="btn btn-success btn-sm accept-btn" (click)="accept(card.userId)">
-            <i class="bi bi-check-lg"></i> Accept
+          <button class="btn btn-success rounded-circle p-0 accept-btn" (click)="accept(card.userId)" [disabled]="processingIds.has(card.userId)" title="Like">
+            <i class="bi bi-heart-fill"></i>
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- TODO: Add pagination controls if implementing pagination -->
+  <div *ngIf="isLoading && matchCards.length > 0" class="text-center my-3 text-muted small">
+    <div class="spinner-border spinner-border-sm text-secondary me-1" role="status"></div>
+    Loading more...
+  </div>
 
 </div>

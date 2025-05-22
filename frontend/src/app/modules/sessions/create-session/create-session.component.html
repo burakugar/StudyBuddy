@@ -1,0 +1,118 @@
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h2 class="mb-0">Create Study Session</h2>
+    </div>
+    <div class="card-body">
+      <div *ngIf="success" class="alert alert-success" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        Study session created successfully! Redirecting to sessions list...
+      </div>
+
+      <div *ngIf="error" class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ error }}
+      </div>
+
+      <form [formGroup]="sessionForm" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="title" class="form-label">Title *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="title" 
+            formControlName="title"
+            placeholder="e.g., Calculus Study Group"
+            [class.is-invalid]="sessionForm.get('title')?.invalid && sessionForm.get('title')?.touched"
+          >
+          <div class="invalid-feedback">
+            Title is required and cannot exceed 100 characters.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea 
+            class="form-control" 
+            id="description" 
+            formControlName="description"
+            rows="3"
+            placeholder="Describe what will be covered in this study session"
+            [class.is-invalid]="sessionForm.get('description')?.invalid && sessionForm.get('description')?.touched"
+          ></textarea>
+          <div class="invalid-feedback">
+            Description cannot exceed 1000 characters.
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="startTime" class="form-label">Start Time *</label>
+            <input 
+              type="datetime-local" 
+              class="form-control" 
+              id="startTime" 
+              formControlName="startTime"
+              [class.is-invalid]="sessionForm.get('startTime')?.invalid && sessionForm.get('startTime')?.touched"
+            >
+            <div class="invalid-feedback">
+              Start time is required.
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="endTime" class="form-label">End Time (Optional)</label>
+            <input 
+              type="datetime-local" 
+              class="form-control" 
+              id="endTime" 
+              formControlName="endTime"
+            >
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="location" class="form-label">Location *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="location" 
+            formControlName="location"
+            placeholder="e.g., Library Room 201 or Zoom Meeting Link"
+            [class.is-invalid]="sessionForm.get('location')?.invalid && sessionForm.get('location')?.touched"
+          >
+          <div class="invalid-feedback">
+            Location is required.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="courseCode" class="form-label">Course Code (Optional)</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="courseCode" 
+            formControlName="courseCode"
+            placeholder="e.g., MATH101"
+          >
+          <div class="form-text">
+            Associate this session with one of your courses.
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <a routerLink="/sessions" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Cancel
+          </a>
+          <button type="submit" class="btn btn-primary" [disabled]="sessionForm.invalid || isSubmitting">
+            <i class="bi bi-calendar-plus me-1"></i>
+            <span *ngIf="!isSubmitting">Create Session</span>
+            <span *ngIf="isSubmitting">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Creating...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

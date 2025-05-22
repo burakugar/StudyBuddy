@@ -1,0 +1,276 @@
+<div class="container mt-4 mb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">{{ editMode ? 'Edit Profile' : 'My Profile' }}</h2>
+        <button *ngIf="!editMode && profile" (click)="toggleEditMode()" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+          <i class="bi bi-pencil-square"></i> Edit Profile
+        </button>
+      </div>
+
+      <div *ngIf="loading" class="text-center my-5 py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <div *ngIf="error" class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" (click)="error = ''" aria-label="Close"></button>
+      </div>
+
+      <div class="card" *ngIf="profile && !loading">
+        <div class="card-body p-4">
+
+          <div *ngIf="!editMode">
+            <div class="row mb-4 align-items-center">
+              <div class="col-md-3 text-center">
+                <img [src]="profile.profilePictureUrl || 'https://placehold.co/150x150?text=?'"
+                     alt="{{ profile.fullName }}"
+                     class="img-thumbnail rounded-circle profile-view-avatar mb-2">
+              </div>
+              <div class="col-md-9">
+                <h3 class="mb-1">{{ profile.fullName }}</h3>
+                <p class="text-muted mb-1">
+                  <i class="bi bi-envelope me-1"></i> {{ profile.email }}
+                </p>
+                <p class="text-muted mb-1" *ngIf="profile.academicYear">
+                  <i class="bi bi-mortarboard me-1"></i> {{ profile.academicYear }}
+                </p>
+                <p class="text-muted mb-1" *ngIf="profile.major">
+                  <i class="bi bi-book me-1"></i> {{ profile.major }}
+                </p>
+                <p class="text-muted mb-1" *ngIf="profile.university">
+                  <i class="bi bi-building me-1"></i> {{ profile.university }}
+                </p>
+                <p class="text-muted mb-0" *ngIf="profile.latitude && profile.longitude">
+                  <i class="bi bi-geo-alt-fill me-1"></i> Location set
+                </p>
+                <p class="text-muted mb-0" *ngIf="!profile.latitude || !profile.longitude">
+                  <i class="bi bi-geo-alt me-1"></i> No location set
+                </p>
+              </div>
+            </div>
+
+            <div class="mb-4" *ngIf="profile.bio">
+              <h5><i class="bi bi-info-circle me-2"></i>About Me</h5>
+              <p class="text-secondary">{{ profile.bio }}</p>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <h5><i class="bi bi-sliders me-2"></i>Study Preferences</h5>
+                <p class="mb-1"><strong>Style:</strong> {{ profile.studyStyle || 'Not specified' }}</p>
+                <p class="mb-1"><strong>Environment:</strong> {{ profile.preferredEnvironment || 'Not specified' }}</p>
+              </div>
+              <div class="col-md-6">
+                <h5><i class="bi bi-calendar-week me-2 text-primary"></i>Availability</h5>
+                <div *ngIf="profile.availabilitySlots && profile.availabilitySlots.length > 0; else noAvailability">
+                  <ul class="list-unstyled mb-0">
+                    <li *ngFor="let slot of profile.availabilitySlots" class="mb-1">
+                      <span class="badge bg-secondary-subtle text-secondary-emphasis me-2" style="min-width: 90px; text-align: center;">{{ slot.dayOfWeek | titlecase }}</span>
+                      {{ slot.startTime }} - {{ slot.endTime }}
+                    </li>
+                  </ul>
+                </div>
+                <ng-template #noAvailability>
+                    <p class="text-muted fst-italic small mb-0">No availability set.</p>
+                </ng-template>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h5><i class="bi bi-journal-text me-2"></i>My Courses</h5>
+              <div *ngIf="profile.courses?.length; else noCourses">
+                <span *ngFor="let course of profile.courses" class="badge bg-primary-subtle text-primary-emphasis rounded-pill me-2 mb-1">
+                   {{ course.courseCode }} - {{ course.name }}
+                </span>
+              </div>
+              <ng-template #noCourses>
+                <p class="text-muted fst-italic small">No courses added yet.</p>
+              </ng-template>
+            </div>
+
+            <div>
+              <h5><i class="bi bi-tags me-2"></i>My Interests</h5>
+              <div *ngIf="profile.interests?.length; else noInterests">
+                <span *ngFor="let interest of profile.interests" class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill me-2 mb-1">
+                  {{ interest.name }}
+                </span>
+              </div>
+              <ng-template #noInterests>
+                <p class="text-muted fst-italic small">No interests added yet.</p>
+              </ng-template>
+            </div>
+          </div>
+
+          <form *ngIf="editMode" [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+            <h5 class="mb-3">Basic Information</h5>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="fullName" class="form-label">Full Name *</label>
+                <input type="text" id="fullName" formControlName="fullName" class="form-control form-control-sm" [ngClass]="{'is-invalid': submitted && f['fullName'].errors}"/>
+                <div *ngIf="submitted && f['fullName'].errors?.['required']" class="invalid-feedback small">
+                  Full name is required
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="profilePictureUrl" class="form-label">Profile Picture URL</label>
+                <input type="text" id="profilePictureUrl" formControlName="profilePictureUrl" class="form-control form-control-sm" placeholder="https://example.com/your-image.jpg"/>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="academicYear" class="form-label">Academic Year</label>
+                <select id="academicYear" formControlName="academicYear" class="form-select form-select-sm">
+                  <option value="">Select Year</option>
+                  <option value="FRESHMAN">Freshman</option>
+                  <option value="SOPHOMORE">Sophomore</option>
+                  <option value="JUNIOR">Junior</option>
+                  <option value="SENIOR">Senior</option>
+                  <option value="GRADUATE">Graduate</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="major" class="form-label">Major</label>
+                <input type="text" id="major" formControlName="major" class="form-control form-control-sm"/>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="university" class="form-label">University</label>
+                <input type="text" id="university" formControlName="university" class="form-control form-control-sm"/>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="bio" class="form-label">Bio</label>
+              <textarea id="bio" formControlName="bio" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+
+            <!-- Location Section (New) -->
+            <hr class="my-4">
+            <h5 class="mb-3">Location <small class="text-muted">(Required for finding nearby study buddies)</small></h5>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="latitude" class="form-label">Latitude</label>
+                <input type="number" step="any" id="latitude" formControlName="latitude" class="form-control form-control-sm"
+                       [ngClass]="{'is-invalid': submitted && (f['latitude'].errors || (f['latitude'].value && !f['longitude'].value))}"/>
+                <div *ngIf="submitted && f['latitude'].value && !f['longitude'].value" class="invalid-feedback small">
+                  Both latitude and longitude are required
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="longitude" class="form-label">Longitude</label>
+                <input type="number" step="any" id="longitude" formControlName="longitude" class="form-control form-control-sm"
+                       [ngClass]="{'is-invalid': submitted && (f['longitude'].errors || (!f['latitude'].value && f['longitude'].value))}"/>
+                <div *ngIf="submitted && !f['latitude'].value && f['longitude'].value" class="invalid-feedback small">
+                  Both latitude and longitude are required
+                </div>
+              </div>
+            </div>
+            <div class="d-flex mb-4 gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="useCurrentLocation()">
+                <i class="bi bi-geo-alt-fill me-1"></i> Use Current Location
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearLocation()" *ngIf="locationSet">
+                <i class="bi bi-x-circle me-1"></i> Clear Location
+              </button>
+            </div>
+            <div *ngIf="locationSet" class="alert alert-success small p-2 mb-3">
+              <i class="bi bi-check-circle me-1"></i> Location is set. You'll appear on the nearby study buddies map.
+            </div>
+
+            <hr class="my-4">
+            <h5 class="mb-3">Preferences & Skills</h5>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="studyStyle" class="form-label">Study Style</label>
+                <select id="studyStyle" formControlName="studyStyle" class="form-select form-select-sm">
+                  <option value="">Select Style</option>
+                  <option value="QUIET">Quiet</option>
+                  <option value="COLLABORATIVE">Collaborative</option>
+                  <option value="DISCUSSION_BASED">Discussion-based</option>
+                  <option value="VISUAL">Visual</option>
+                  <option value="AUDITORY">Auditory</option>
+                  <option value="KINESTHETIC">Kinesthetic</option>
+                  <option value="READING_WRITING">Reading/Writing</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="preferredEnvironment" class="form-label">Preferred Environment</label>
+                <select id="preferredEnvironment" formControlName="preferredEnvironment" class="form-select form-select-sm">
+                  <option value="">Select Environment</option>
+                  <option value="LIBRARY">Library</option>
+                  <option value="CAFE">Cafe</option>
+                  <option value="ONLINE">Online</option>
+                  <option value="OUTDOORS">Outdoors</option>
+                  <option value="CLASSROOM">Classroom</option>
+                  <option value="DORM">Dorm/Home</option>
+                  <option value="LAB">Lab/Studio</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="courses" class="form-label">My Courses</label>
+              <input type="text" id="courses" formControlName="courses" class="form-control form-control-sm"
+                     placeholder="CS101, MATH301"/>
+              <div class="form-text small">Enter comma-separated course codes</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="interests" class="form-label">My Interests</label>
+              <input type="text" id="interests" formControlName="interests" class="form-control form-control-sm"
+                     placeholder="Programming, Music, Hiking"/>
+              <div class="form-text small">Enter comma-separated interests</div>
+            </div>
+
+            <h5 class="mb-3 mt-4 border-bottom pb-2">Availability</h5>
+            <div formArrayName="availabilitySlots">
+              <div *ngFor="let slotGroup of availabilitySlotsArray.controls; let i=index" [formGroupName]="i" class="row align-items-center mb-2 availability-slot-row">
+                <div class="col-md-4 mb-2 mb-md-0">
+                   <label [for]="'dayOfWeek' + i" class="visually-hidden">Day</label>
+                   <select [id]="'dayOfWeek' + i" formControlName="dayOfWeek" class="form-select form-select-sm" [ngClass]="{'is-invalid': slotGroup.get('dayOfWeek')?.invalid && (slotGroup.get('dayOfWeek')?.touched || submitted)}">
+                     <option value="" disabled>Select Day</option>
+                     <option *ngFor="let day of daysOfWeek" [value]="day">{{ day | titlecase }}</option>
+                   </select>
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                   <label [for]="'startTime' + i" class="visually-hidden">Start Time</label>
+                   <input type="time" [id]="'startTime' + i" formControlName="startTime" class="form-control form-control-sm" [ngClass]="{'is-invalid': slotGroup.get('startTime')?.invalid && (slotGroup.get('startTime')?.touched || submitted) || slotGroup.errors?.['endTimeBeforeStartTime']}">
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                   <label [for]="'endTime' + i" class="visually-hidden">End Time</label>
+                   <input type="time" [id]="'endTime' + i" formControlName="endTime" class="form-control form-control-sm" [ngClass]="{'is-invalid': slotGroup.get('endTime')?.invalid && (slotGroup.get('endTime')?.touched || submitted) || slotGroup.errors?.['endTimeBeforeStartTime']}">
+                </div>
+                <div class="col-md-2 text-end">
+                   <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAvailabilitySlot(i)" title="Remove Slot">
+                     <i class="bi bi-trash"></i>
+                   </button>
+                </div>
+                 <div *ngIf="slotGroup.errors?.['endTimeBeforeStartTime'] && (slotGroup.get('endTime')?.touched || submitted)" class="col-12">
+                    <div class="text-danger small mt-1">End time must be after start time.</div>
+                 </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-success btn-sm mt-2" (click)="addAvailabilitySlot()">
+              <i class="bi bi-plus-circle me-1"></i> Add Availability Slot
+            </button>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary" [disabled]="saving">
+                <span *ngIf="saving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                {{ saving ? 'Saving...' : 'Save Changes' }}
+              </button>
+              <button type="button" class="btn btn-secondary" (click)="toggleEditMode()" [disabled]="saving">
+                Cancel
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div> </div>
+  </div>
+</div>

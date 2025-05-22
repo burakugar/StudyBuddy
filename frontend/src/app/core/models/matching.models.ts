@@ -4,7 +4,7 @@
 
 export interface MatchCardDto {
   id: number;
-  userId: number; // Added this field
+  userId: number;
   fullName: string;
   academicYear?: string;
   major?: string;
@@ -15,8 +15,8 @@ export interface MatchCardDto {
   profilePictureUrl?: string;
   courseCodes?: string[];
   interestNames?: string[];
-  commonCourses?: any[]; // Added for the quick match component
-  commonInterests?: any[]; // Added for the quick match component
+  commonCourses?: any[]; 
+  commonInterests?: any[]; 
   matchPercentage?: number;
 }
 
@@ -30,5 +30,4 @@ export interface MatchPreferencesDto {
   interestNames?: string[];
 }
 
-// Empty export to ensure file is recognized as a module
 export {};

@@ -1,0 +1,58 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">My Study Sessions</h2>
+    <div>
+      <button class="btn btn-sm btn-outline-secondary me-2" (click)="loadSessions()" [disabled]="isLoading" title="Refresh Sessions">
+        <i class="bi bi-arrow-clockwise" [class.spin]="isLoading"></i>
+      </button>
+      <a routerLink="/sessions/create" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Create New Session
+      </a>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <div *ngIf="error && !isLoading" class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = null" aria-label="Close"></button>
+  </div>
+
+  <div *ngIf="!isLoading && !error && sessions.length === 0" class="text-center text-muted bg-light p-5 rounded">
+    <i class="bi bi-calendar-x fs-1 mb-3"></i>
+    <h4>No Sessions Found</h4>
+    <p>You haven't created or joined any study sessions yet.</p>
+  </div>
+
+  <div class="list-group shadow-sm" *ngIf="!isLoading && sessions.length > 0">
+    <a *ngFor="let session of sessions; trackBy: trackBySessionId"
+       [routerLink]="['/sessions', session.id]"
+       class="list-group-item list-group-item-action flex-column align-items-start p-3 session-item">
+      <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+        <h5 class="mb-1 text-primary text-truncate">{{ session.title }}</h5>
+        <span class="badge rounded-pill"
+              [ngClass]="{'bg-success-subtle text-success-emphasis': isUpcoming(session.startTime), 'bg-secondary-subtle text-secondary-emphasis': !isUpcoming(session.startTime)}">
+          {{ isUpcoming(session.startTime) ? 'Upcoming' : 'Past' }}
+        </span>
+      </div>
+      <p class="mb-1 text-muted small">
+        <i class="bi bi-calendar-event me-1"></i> {{ session.startTime | date:'medium' }}
+        <span *ngIf="session.endTime"> - {{ session.endTime | date:'shortTime' }}</span>
+      </p>
+      <p class="mb-1 text-muted small">
+        <i class="bi bi-geo-alt me-1"></i> {{ session.location }}
+        <span *ngIf="session.courseCode" class="ms-3"><i class="bi bi-book me-1"></i>{{session.courseCode}}</span>
+      </p>
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <small class="text-muted">Created by: {{ session.creatorName }}</small>
+        <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
+            <i class="bi bi-people-fill me-1"></i> {{ session.participantCount }} Participant{{ session.participantCount !== 1 ? 's' : '' }}
+         </span>
+      </div>
+    </a>
+  </div>
+</div>

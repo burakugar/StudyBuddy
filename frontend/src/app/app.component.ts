@@ -9,21 +9,29 @@ import { Observable } from 'rxjs';
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule, RouterOutlet, HeaderComponent],
-  template: `
-    <app-header *ngIf="isAuthenticated$ | async"></app-header>
-    <router-outlet></router-outlet>
-  `,
-  styles: []
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
   isAuthenticated$!: Observable<boolean>;
-  
-  constructor(private authService: AuthService) {}
-  
+  title='frontend';
+
+  constructor(private authService: AuthService) {
+    console.log('[AppComponent] Constructor executed');
+  }
+
   ngOnInit(): void {
+    console.log('[AppComponent] ngOnInit');
+    this.authService.checkToken().subscribe(isAuthenticated => {
+      console.log('[AppComponent] Initial authentication check result:', isAuthenticated);
+    });
+
     this.isAuthenticated$ = this.authService.isAuthenticated$;
+
+    if (!this.isAuthenticated$) {
+      console.error("[AppComponent] CRITICAL: isAuthenticated$ is still undefined after assignment in ngOnInit!");
+    } else {
+      console.log("[AppComponent] isAuthenticated$ assigned successfully in ngOnInit.");
+    }
   }
 }
-
-// Empty export to ensure file is recognized as a module
-export {};

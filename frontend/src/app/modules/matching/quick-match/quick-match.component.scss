@@ -1,0 +1,80 @@
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+.match-card {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s ease-in-out;
+  border: 1px solid var(--app-border-color);
+
+  &:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  &.processing {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.profile-pic {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+}
+
+.bio-text {
+  font-size: 0.85rem;
+  color: #6c757d; // Bootstrap text-muted color
+  line-height: 1.4;
+  min-height: calc(1.4em * 3);
+  max-height: calc(1.4em * 3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 1rem; // Add space below bio
+}
+
+.card-body {
+    padding-bottom: 0.5rem; // Reduce bottom padding
+}
+.card-body .border-top {
+    padding-top: 0.75rem !important;
+    margin-top: 0.75rem !important;
+}
+
+
+.card-footer {
+   padding-top: 0 !important;
+   button {
+      width: 45px;
+      height: 45px;
+      font-size: 1.2rem; // Icon size
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease-in-out, background-color 0.15s ease;
+
+      &.reject-btn:hover {
+          background-color: var(--bs-danger-bg-subtle);
+          transform: scale(1.1);
+      }
+       &.accept-btn:hover {
+          background-color: var(--bs-success-bg-subtle);
+          transform: scale(1.1);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+   }
+}
+
+// Spin animation for refresh button
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}

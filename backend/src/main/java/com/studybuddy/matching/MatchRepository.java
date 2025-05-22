@@ -15,40 +15,32 @@ import java.util.Optional;
 
 @Repository
 public interface MatchRepository extends JpaRepository<Match, MatchId> {
-    
-    /**
-     * Finds a match by user ids, ensuring proper ordering (smaller id first)
-     */
+
     @Query("SELECT m FROM Match m WHERE " +
-           "(m.id.userOneId = :userOneId AND m.id.userTwoId = :userTwoId)")
-    Optional<Match> findMatchByUserIds(@Param("userOneId") Long userOneId, 
-                                      @Param("userTwoId") Long userTwoId);
-    
-    /**
-     * Find potential matches for a user:
-     * - Not already rejected
-     * - Not the user themselves
-     * - Order by common courses and interests (requires separate logic in service)
-     */
+        "(m.id.userOneId = :userOneId AND m.id.userTwoId = :userTwoId)")
+    Optional<Match> findMatchByUserIds(@Param("userOneId") Long userOneId,
+                                       @Param("userTwoId") Long userTwoId);
+
+
+    // UPDATED QUERY: Exclude users the current user has already ACCEPTED or REJECTED
     @Query("SELECT u FROM User u WHERE u.id != :userId AND " +
-           "u.id NOT IN (SELECT m.id.userTwoId FROM Match m WHERE m.id.userOneId = :userId AND " +
-           "(m.userOneStatus = 'REJECTED' OR m.status = 'MATCHED')) AND " +
-           "u.id NOT IN (SELECT m.id.userOneId FROM Match m WHERE m.id.userTwoId = :userId AND " +
-           "(m.userTwoStatus = 'REJECTED' OR m.status = 'MATCHED'))")
+        "u.id NOT IN (" +
+        "  SELECT m.id.userTwoId FROM Match m WHERE m.id.userOneId = :userId AND m.userOneStatus != 'PENDING'" +
+        ") AND " +
+        "u.id NOT IN (" +
+        "  SELECT m.id.userOneId FROM Match m WHERE m.id.userTwoId = :userId AND m.userTwoStatus != 'PENDING'" +
+        ")")
     Page<User> findPotentialMatches(@Param("userId") Long userId, Pageable pageable);
-    
-    /**
-     * Find all matches where a user has accepted and is waiting for the other user
-     */
+
+
     @Query("SELECT m FROM Match m WHERE " +
-           "(m.id.userOneId = :userId AND m.userOneStatus = 'ACCEPTED' AND m.userTwoStatus = 'PENDING') OR " +
-           "(m.id.userTwoId = :userId AND m.userTwoStatus = 'ACCEPTED' AND m.userOneStatus = 'PENDING')")
+        "((m.id.userOneId = :userId AND m.userOneStatus = 'ACCEPTED' AND m.userTwoStatus = 'PENDING') OR " +
+        "(m.id.userTwoId = :userId AND m.userTwoStatus = 'ACCEPTED' AND m.userOneStatus = 'PENDING'))")
     Page<Match> findPendingMatchesForUser(@Param("userId") Long userId, Pageable pageable);
-    
-    /**
-     * Find all matched connections (both accepted)
-     */
+
+
+    // Find matches where the status column (managed by DB or explicitly set) is 'MATCHED'
     @Query("SELECT m FROM Match m WHERE " +
-           "((m.id.userOneId = :userId) OR (m.id.userTwoId = :userId)) AND m.status = 'MATCHED'")
+        "((m.id.userOneId = :userId) OR (m.id.userTwoId = :userId)) AND m.status = 'MATCHED'")
     Page<Match> findMatchedConnectionsForUser(@Param("userId") Long userId, Pageable pageable);
 }

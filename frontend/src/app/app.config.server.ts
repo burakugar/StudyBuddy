@@ -10,5 +10,4 @@ const serverConfig: ApplicationConfig = {
 
 export const appConfigServer = mergeApplicationConfig(appConfig, serverConfig);
 
-// Empty export to ensure file is recognized as a module
 export {};

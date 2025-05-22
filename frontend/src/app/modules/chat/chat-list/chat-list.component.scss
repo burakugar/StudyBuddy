@@ -1,34 +1,42 @@
-.chat-list {
-  .chat-item {
-    transition: background-color 0.2s ease;
-    
-    &:hover {
-      background-color: rgba(0, 123, 255, 0.05);
-    }
-    
-    .chat-avatar {
-      width: 48px;
-      height: 48px;
-      object-fit: cover;
-    }
-    
+.chat-list .chat-item {
+  transition: background-color 0.15s ease-in-out, border-left-color 0.15s ease-in-out;
+  border-left: 4px solid transparent;
+
+  &:hover {
+    background-color: #eef2f7;
+  }
+
+  &.active {
+    background-color: #e7f1ff;
+    border-left-color: var(--bs-primary);
     .chat-user-name {
-      color: #212529;
-      font-size: 1rem;
-      margin-bottom: 0.25rem;
-    }
-    
-    .chat-last-message {
-      color: #6c757d;
-      font-size: 0.875rem;
-      margin-bottom: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .chat-timestamp {
-      font-size: 0.75rem;
+      color: var(--bs-primary);
     }
   }
+}
+
+.chat-avatar {
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--app-border-color);
+}
+
+.chat-user-name {
+}
+
+.chat-last-message {
+}
+
+.chat-timestamp {
+  font-size: 0.75rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
 }

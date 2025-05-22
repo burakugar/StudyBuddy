@@ -1,208 +1,20 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { UserProfileDto, UserService, UserUpdateDto } from '../../../core/services/user.service';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { EMPTY, finalize, merge, Observable, Subscription } from 'rxjs';
+import { AvailabilitySlotDto, DayOfWeek } from '../../../core/models/availability.model';
+import { UserProfileDto, UserUpdateDto } from '../../../core/models/user.model';
+import { UserService } from '../../../core/services/user.service';
 
 @Component({
   selector: 'app-profile-view-edit',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  template: `
-    <div class="container mt-4">
-      <div class="row">
-        <div class="col-md-8 mx-auto">
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h4 class="mb-0">{{ editMode ? 'Edit Profile' : 'My Profile' }}</h4>
-              <button *ngIf="!editMode" (click)="toggleEditMode()" class="btn btn-primary btn-sm">
-                Edit Profile
-              </button>
-            </div>
-
-            <div class="card-body">
-              <!-- Loading spinner -->
-              <div *ngIf="loading" class="text-center my-5">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-              </div>
-
-              <!-- Error message -->
-              <div *ngIf="error" class="alert alert-danger">
-                {{ error }}
-              </div>
-
-              <!-- View mode -->
-              <div *ngIf="!editMode && profile && !loading">
-                <div class="row mb-4">
-                  <div class="col-md-4 text-center mb-3 mb-md-0">
-                    <img [src]="profile.profilePictureUrl || 'https://placehold.co/200x200?text=Profile'"
-                         alt="{{ profile.fullName }}"
-                         class="img-fluid rounded-circle"
-                         style="max-width: 150px;">
-                  </div>
-                  <div class="col-md-8">
-                    <h3>{{ profile.fullName }}</h3>
-                    <p class="text-muted mb-1">{{ profile.academicYear || 'No academic year specified' }}</p>
-                    <p><strong>Major:</strong> {{ profile.major || 'Not specified' }}</p>
-                    <p><strong>University:</strong> {{ profile.university || 'Not specified' }}</p>
-                  </div>
-                </div>
-
-                <hr>
-
-                <div class="mb-4">
-                  <h5>About Me</h5>
-                  <p>{{ profile.bio || 'No bio provided' }}</p>
-                </div>
-
-                <div class="row mb-4">
-                  <div class="col-md-6">
-                    <h5>Study Preferences</h5>
-                    <p><strong>Study Style:</strong> {{ profile.studyStyle || 'Not specified' }}</p>
-                    <p><strong>Preferred Environment:</strong> {{ profile.preferredEnvironment || 'Not specified' }}</p>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-6 mb-4">
-                    <h5>My Courses</h5>
-                    <div *ngIf="profile.courses && profile.courses.length > 0; else noCourses">
-                      <div class="d-flex flex-wrap gap-2">
-                        <span *ngFor="let course of profile.courses" class="badge bg-primary">
-                          {{ course.courseCode }}
-                        </span>
-                      </div>
-                    </div>
-                    <ng-template #noCourses>
-                      <p class="text-muted">No courses added</p>
-                    </ng-template>
-                  </div>
-
-                  <div class="col-md-6 mb-4">
-                    <h5>My Interests</h5>
-                    <div *ngIf="profile.interests && profile.interests.length > 0; else noInterests">
-                      <div class="d-flex flex-wrap gap-2">
-                        <span *ngFor="let interest of profile.interests" class="badge bg-secondary">
-                          {{ interest.name }}
-                        </span>
-                      </div>
-                    </div>
-                    <ng-template #noInterests>
-                      <p class="text-muted">No interests added</p>
-                    </ng-template>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit mode -->
-              <form *ngIf="editMode && profile && !loading" [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-                <div class="mb-3">
-                  <label for="fullName" class="form-label">Full Name *</label>
-                  <input type="text" id="fullName" formControlName="fullName" class="form-control"
-                         [ngClass]="{'is-invalid': submitted && f['fullName'].errors}"/>
-                  <div *ngIf="submitted && f['fullName'].errors" class="invalid-feedback">
-                    <div *ngIf="f['fullName'].errors?.['required']">Full name is required</div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="academicYear" class="form-label">Academic Year</label>
-                    <select id="academicYear" formControlName="academicYear" class="form-select">
-                      <option value="">Select Year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                      <option value="5th Year">5th Year</option>
-                      <option value="Graduate">Graduate</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6 mb-3">
-                    <label for="major" class="form-label">Major</label>
-                    <input type="text" id="major" formControlName="major" class="form-control"/>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="university" class="form-label">University</label>
-                  <input type="text" id="university" formControlName="university" class="form-control"/>
-                </div>
-
-                <div class="mb-3">
-                  <label for="bio" class="form-label">Bio</label>
-                  <textarea id="bio" formControlName="bio" class="form-control" rows="3"></textarea>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="studyStyle" class="form-label">Study Style</label>
-                    <select id="studyStyle" formControlName="studyStyle" class="form-select">
-                      <option value="">Select Style</option>
-                      <option value="Quiet">Quiet</option>
-                      <option value="Collaborative">Collaborative</option>
-                      <option value="Discussion-based">Discussion-based</option>
-                      <option value="Visual">Visual</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6 mb-3">
-                    <label for="preferredEnvironment" class="form-label">Preferred Environment</label>
-                    <select id="preferredEnvironment" formControlName="preferredEnvironment" class="form-select">
-                      <option value="">Select Environment</option>
-                      <option value="Library">Library</option>
-                      <option value="Cafe">Cafe</option>
-                      <option value="Online">Online</option>
-                      <option value="Outdoors">Outdoors</option>
-                      <option value="Classroom">Classroom</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="courses" class="form-label">Current Courses</label>
-                  <input type="text" id="courses" formControlName="courses" class="form-control"
-                         placeholder="Enter comma-separated course codes (e.g., CS101, MATH101)"/>
-                  <div class="form-text">Enter comma-separated course codes</div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="interests" class="form-label">Study Interests</label>
-                  <input type="text" id="interests" formControlName="interests" class="form-control"
-                         placeholder="Enter comma-separated interests (e.g., Programming, Calculus)"/>
-                  <div class="form-text">Enter comma-separated interests</div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="profilePictureUrl" class="form-label">Profile Picture URL</label>
-                  <input type="text" id="profilePictureUrl" formControlName="profilePictureUrl" class="form-control"
-                         placeholder="https://example.com/your-image.jpg"/>
-                  <div class="form-text">Enter URL to your profile picture</div>
-                </div>
-
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary" [disabled]="saving">
-                    <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-                    Save Changes
-                  </button>
-                  <button type="button" class="btn btn-secondary" (click)="toggleEditMode()">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: []
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './profile-view-edit.component.html',
+  styleUrls: ['./profile-view-edit.component.scss']
 })
-export class ProfileViewEditComponent implements OnInit {
+export class ProfileViewEditComponent implements OnInit, OnDestroy {
   profile: UserProfileDto | null = null;
   profileForm!: FormGroup;
   loading = false;
@@ -210,107 +22,262 @@ export class ProfileViewEditComponent implements OnInit {
   editMode = false;
   submitted = false;
   error = '';
+  locationSet = false;
+
+  daysOfWeek: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+  private profileSubscription: Subscription | null = null;
+  private formChangesSubscription: Subscription | null = null;
+
 
   constructor(
     private userService: UserService,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
     this.loadProfile();
   }
 
+  ngOnDestroy(): void {
+    this.profileSubscription?.unsubscribe();
+    this.formChangesSubscription?.unsubscribe();
+  }
+
   loadProfile(): void {
     this.loading = true;
-    this.userService.getMyProfile().subscribe({
-      next: (profile) => {
-        this.profile = profile;
-        this.initializeForm();
+    this.error = '';
+    this.cdr.markForCheck();
+
+    this.profileSubscription = this.userService.getMyProfile()
+      .pipe(finalize(() => {
         this.loading = false;
-      },
-      error: (error) => {
-        this.error = error.error?.message || 'Failed to load profile. Please try again.';
-        this.loading = false;
-      }
-    });
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: (profile) => {
+          this.profile = profile;
+          this.locationSet = !!(profile.latitude && profile.longitude);
+          this.initializeForm();
+        },
+        error: (err) => {
+          console.error("Error loading profile:", err);
+          this.error = err?.message || 'Failed to load profile. Please try again.';
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   initializeForm(): void {
-    if (this.profile) {
-      // Format courses and interests for form
-      const coursesString = this.profile.courses?.map(course => course.courseCode).join(', ') || '';
-      const interestsString = this.profile.interests?.map(interest => interest.name).join(', ') || '';
+    if (!this.profile) return;
 
-      this.profileForm = this.formBuilder.group({
-        fullName: [this.profile.fullName, Validators.required],
-        academicYear: [this.profile.academicYear || ''],
-        major: [this.profile.major || ''],
-        university: [this.profile.university || ''],
-        bio: [this.profile.bio || ''],
-        studyStyle: [this.profile.studyStyle || ''],
-        preferredEnvironment: [this.profile.preferredEnvironment || ''],
-        profilePictureUrl: [this.profile.profilePictureUrl || ''],
-        courses: [coursesString],
-        interests: [interestsString]
+    const coursesString = this.profile.courses?.map(course => course.courseCode).join(', ') || '';
+    const interestsString = this.profile.interests?.map(interest => interest.name).join(', ') || '';
+
+    this.profileForm = this.formBuilder.group({
+      fullName: [this.profile.fullName || '', Validators.required],
+      academicYear: [this.profile.academicYear || ''],
+      major: [this.profile.major || ''],
+      university: [this.profile.university || ''],
+      bio: [this.profile.bio || ''],
+      studyStyle: [this.profile.studyStyle || ''],
+      preferredEnvironment: [this.profile.preferredEnvironment || ''],
+      profilePictureUrl: [this.profile.profilePictureUrl || ''],
+      courses: [coursesString],
+      interests: [interestsString],
+      latitude: [this.profile.latitude ?? ''],
+      longitude: [this.profile.longitude ?? ''],
+      availabilitySlots: this.formBuilder.array(
+        this.profile.availabilitySlots?.map(slot => this.createAvailabilitySlotGroup(slot)) || []
+      )
+    });
+
+    this.formChangesSubscription?.unsubscribe();
+
+    const latControl = this.profileForm.get('latitude');
+    const lonControl = this.profileForm.get('longitude');
+
+    const latChanges$: Observable<any> = latControl?.valueChanges ?? EMPTY;
+    const lonChanges$: Observable<any> = lonControl?.valueChanges ?? EMPTY;
+
+    this.formChangesSubscription = merge(latChanges$, lonChanges$)
+      .subscribe(() => {
+        this.checkLocationSet();
+        this.cdr.markForCheck();
       });
-    }
+
+    this.cdr.markForCheck();
   }
+
+  createAvailabilitySlotGroup(slot?: AvailabilitySlotDto): FormGroup {
+    return this.formBuilder.group({
+      id: [slot?.id],
+      dayOfWeek: [slot?.dayOfWeek || '', Validators.required],
+      startTime: [slot?.startTime || '', [Validators.required, Validators.pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)]],
+      endTime: [slot?.endTime || '', [Validators.required, Validators.pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)]]
+    }, { validators: this.timeSlotValidator });
+  }
+
+  timeSlotValidator(group: AbstractControl): { [key: string]: boolean } | null {
+    const start = group.get('startTime')?.value;
+    const end = group.get('endTime')?.value;
+    if (start && end && start >= end) {
+      return { 'endTimeBeforeStartTime': true };
+    }
+    return null;
+  }
+
+
+  get availabilitySlotsArray(): FormArray {
+    return this.profileForm.get('availabilitySlots') as FormArray;
+  }
+
+  addAvailabilitySlot(): void {
+    this.availabilitySlotsArray.push(this.createAvailabilitySlotGroup());
+    this.cdr.markForCheck();
+  }
+
+  removeAvailabilitySlot(index: number): void {
+    this.availabilitySlotsArray.removeAt(index);
+    this.cdr.markForCheck();
+  }
+
 
   toggleEditMode(): void {
     this.editMode = !this.editMode;
-    if (!this.editMode) {
-      this.submitted = false;
-      this.initializeForm(); // Reset form when canceling edit
+    this.error = '';
+    if (this.editMode && !this.profileForm) {
+      this.initializeForm();
+    } else if (!this.editMode && this.profileForm?.dirty) {
+      this.initializeForm();
+    }
+    this.submitted = false;
+    this.cdr.markForCheck();
+  }
+
+  get f() { return this.profileForm.controls; }
+
+  useCurrentLocation(): void {
+    if (!navigator.geolocation) {
+      this.error = 'Geolocation is not supported by your browser.';
+      this.cdr.markForCheck();
+      return;
+    }
+    this.error = '';
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.f['latitude'].setValue(position.coords.latitude.toFixed(6));
+        this.f['longitude'].setValue(position.coords.longitude.toFixed(6));
+      },
+      (geoError) => {
+        console.error('Error getting location:', geoError);
+        this.error = `Could not get location: ${geoError.message}`;
+        this.cdr.markForCheck();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  clearLocation(): void {
+    this.f['latitude'].setValue('');
+    this.f['longitude'].setValue('');
+  }
+
+  checkLocationSet(): void {
+    const lat = this.f['latitude']?.value;
+    const lon = this.f['longitude']?.value;
+    const newStatus = (lat !== null && lat !== '' && lon !== null && lon !== '');
+    if (this.locationSet !== newStatus) {
+      this.locationSet = newStatus;
     }
   }
 
-  // Getter for form controls
-  get f() { return this.profileForm.controls; }
-
   onSubmit(): void {
     this.submitted = true;
+    this.error = '';
+    this.profileForm.markAllAsTouched();
+    this.cdr.markForCheck();
 
-    // Stop if form is invalid
     if (this.profileForm.invalid) {
+      console.warn("Profile form invalid:", this.profileForm.errors);
+      for (const key of Object.keys(this.profileForm.controls)) {
+        if (this.profileForm.controls[key].invalid) {
+          console.log(`Invalid control: ${key}`, this.profileForm.controls[key].errors);
+          if (key === 'availabilitySlots' && this.profileForm.controls[key] instanceof FormArray) {
+            (this.profileForm.controls[key] as FormArray).controls.forEach((group, index) => {
+              if (group.invalid) {
+                console.log(`Invalid availability slot at index ${index}:`, group.errors, group.value);
+              }
+            });
+          }
+        }
+      }
+      this.error = 'Please fix the errors in the form before saving.';
       return;
     }
 
     this.saving = true;
-    this.error = '';
+    this.cdr.markForCheck();
 
-    // Parse comma-separated values
-    const courseCodes = this.f['courses'].value
-      ? this.f['courses'].value.split(',').map((code: string) => code.trim()).filter((code: string) => code)
+    const formValue = this.profileForm.value;
+
+    const courseCodes = formValue.courses
+      ? formValue.courses.split(',').map((code: string) => code.trim()).filter(Boolean)
       : [];
 
-    const interestNames = this.f['interests'].value
-      ? this.f['interests'].value.split(',').map((interest: string) => interest.trim()).filter((interest: string) => interest)
+    const interestNames = formValue.interests
+      ? formValue.interests.split(',').map((interest: string) => interest.trim()).filter(Boolean)
       : [];
+
+    const latitude = (formValue.latitude !== null && formValue.latitude !== '') ? parseFloat(formValue.latitude) : null;
+    const longitude = (formValue.longitude !== null && formValue.longitude !== '') ? parseFloat(formValue.longitude) : null;
+
+    const validAvailabilitySlots = formValue.availabilitySlots
+      .filter((slot: AvailabilitySlotDto) =>
+        slot.dayOfWeek && slot.startTime && slot.endTime && slot.startTime < slot.endTime
+      )
+      .map((slot: AvailabilitySlotDto) => ({
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      }));
+
 
     const updateData: UserUpdateDto = {
-      fullName: this.f['fullName'].value,
-      academicYear: this.f['academicYear'].value,
-      major: this.f['major'].value,
-      university: this.f['university'].value,
-      bio: this.f['bio'].value,
-      studyStyle: this.f['studyStyle'].value,
-      preferredEnvironment: this.f['preferredEnvironment'].value,
-      profilePictureUrl: this.f['profilePictureUrl'].value,
+      fullName: formValue.fullName,
+      academicYear: formValue.academicYear || null,
+      major: formValue.major || null,
+      university: formValue.university || null,
+      bio: formValue.bio || null,
+      studyStyle: formValue.studyStyle || null,
+      preferredEnvironment: formValue.preferredEnvironment || null,
+      profilePictureUrl: formValue.profilePictureUrl || null,
+      latitude: latitude,
+      longitude: longitude,
       courseCodes: courseCodes,
-      interestNames: interestNames
+      interestNames: interestNames,
+      availabilitySlots: validAvailabilitySlots
     };
 
-    this.userService.updateMyProfile(updateData).subscribe({
-      next: (updatedProfile) => {
-        this.profile = updatedProfile;
+    this.userService.updateMyProfile(updateData)
+      .pipe(finalize(() => {
         this.saving = false;
-        this.editMode = false;
         this.submitted = false;
-      },
-      error: (error) => {
-        this.error = error.error?.message || 'Failed to update profile. Please try again.';
-        this.saving = false;
-      }
-    });
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: (updatedProfile) => {
+          this.profile = updatedProfile;
+          this.locationSet = !!(updatedProfile.latitude && updatedProfile.longitude);
+          this.editMode = false;
+          this.initializeForm();
+        },
+        error: (err) => {
+          console.error("Error updating profile:", err);
+          this.error = err?.message || 'Failed to update profile. Please try again.';
+          this.cdr.markForCheck();
+        }
+      });
   }
 }

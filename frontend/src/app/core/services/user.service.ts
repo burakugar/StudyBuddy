@@ -1,56 +1,14 @@
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-
-export interface CourseDto {
-  courseCode: string;
-  name: string;
-}
-
-export interface InterestDto {
-  name: string;
-}
-
-export interface UserProfileDto {
-  id: number;
-  email: string;
-  fullName: string;
-  academicYear?: string;
-  profilePictureUrl?: string;
-  major?: string;
-  university?: string;
-  bio?: string;
-  studyStyle?: string;
-  preferredEnvironment?: string;
-  courses: CourseDto[];
-  interests: InterestDto[];
-}
-
-export interface UserUpdateDto {
-  fullName?: string;
-  academicYear?: string;
-  major?: string;
-  university?: string;
-  bio?: string;
-  studyStyle?: string;
-  preferredEnvironment?: string;
-  profilePictureUrl?: string;
-  courseCodes?: string[];
-  interestNames?: string[];
-}
-
-export interface PublicProfileDto {
-  id: number;
-  fullName: string;
-  academicYear?: string;
-  major?: string;
-  university?: string;
-  profilePictureUrl?: string;
-  bio?: string;
-  studyStyle?: string;
-  preferredEnvironment?: string;
-}
+import {
+  NearbyUserDto,
+  PublicProfileDto,
+  UserProfileDto,
+  UserUpdateDto
+} from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -60,24 +18,54 @@ export class UserService {
 
   constructor(private http: HttpClient) { }
 
-  /**
-   * Get the current user's profile
-   */
   getMyProfile(): Observable<UserProfileDto> {
-    return this.http.get<UserProfileDto>(`${this.API_URL}/me`);
+    console.log('[UserService] Fetching my profile');
+    return this.http.get<UserProfileDto>(`${this.API_URL}/me`)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Update the current user's profile
-   */
   updateMyProfile(userUpdateDto: UserUpdateDto): Observable<UserProfileDto> {
-    return this.http.put<UserProfileDto>(`${this.API_URL}/me`, userUpdateDto);
+    console.log('[UserService] Updating profile with data:', userUpdateDto);
+    return this.http.put<UserProfileDto>(`${this.API_URL}/me`, userUpdateDto)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Get public profile information for a specific user
-   */
   getPublicProfile(userId: number): Observable<PublicProfileDto> {
-    return this.http.get<PublicProfileDto>(`${this.API_URL}/${userId}/public`);
+    console.log(`[UserService] Fetching public profile for user ${userId}`);
+    return this.http.get<PublicProfileDto>(`${this.API_URL}/${userId}/public`)
+      .pipe(catchError(this.handleError));
+  }
+
+  getNearbyUsers(radiusKm: number = 5, limit: number = 20): Observable<NearbyUserDto[]> {
+    const params = new HttpParams()
+      .set('radiusKm', radiusKm.toString())
+      .set('limit', limit.toString());
+    console.log(`[UserService] Requesting nearby users with radius=${radiusKm}km, limit=${limit}`);
+    return this.http.get<NearbyUserDto[]>(`${this.API_URL}/nearby`, { params })
+      .pipe(
+        map(users => users.map(user => ({
+          ...user,
+          profilePictureUrl: user.profilePictureUrl || environment.defaultAvatarUrl
+        }))),
+        catchError(this.handleError)
+      );
+  }
+
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'An unknown error occurred';
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = `Client error: ${error.error.message}`;
+    } else if (error.status === 0) {
+      errorMessage = 'Unable to connect to the server. Please check your network connection.';
+    } else {
+      const backendMessage = error.error?.message || error.error?.error;
+      if (backendMessage) {
+        errorMessage = `Error ${error.status}: ${backendMessage}`;
+      } else {
+        errorMessage = `Server returned code ${error.status}, error message: ${error.message}`;
+      }
+    }
+    console.error(`[UserService] HTTP error: ${errorMessage}`, error);
+    return throwError(() => ({ message: errorMessage, status: error.status, originalError: error }));
   }
 }

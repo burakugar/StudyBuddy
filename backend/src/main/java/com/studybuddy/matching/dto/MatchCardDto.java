@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchCardDto {
-    
+
     private Long userId;
     private String fullName;
     private String academicYear;
@@ -22,4 +22,5 @@ public class MatchCardDto {
     private List<CourseDto> commonCourses = new ArrayList<>();
     private List<InterestDto> commonInterests = new ArrayList<>();
     private String bio;
+    private double availabilityScore; // Added score
 }
